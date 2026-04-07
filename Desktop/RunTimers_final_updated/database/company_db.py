@@ -386,20 +386,25 @@ class CompanyDatabase:
             ).fetchall()
             return [dict(r) for r in rows]
 
-    def compliance_summary(self) -> Dict:
-        """High-level compliance health summary."""
-        records = self.get_all_records()
-        violations = self.get_violations(resolved=False)
-        sev_counts = {"Critical": 0, "High": 0, "Medium": 0, "Low": 0}
-        for v in violations:
-            sev = v.get("severity", "Medium")
-            sev_counts[sev] = sev_counts.get(sev, 0) + 1
+def compliance_summary(self) -> Dict:
+    """High-level compliance health summary with fixed score formula."""
+    records = self.get_all_records()
+    violations = self.get_violations(resolved=False)
+    sev_counts = {"Critical": 0, "High": 0, "Medium": 0, "Low": 0}
+    for v in violations:
+        sev = v.get("severity", "Medium")
+        sev_counts[sev] = sev_counts.get(sev, 0) + 1
 
-        return {
-            "total_records": len(records),
-            "active_violations": len(violations),
-            "compliance_score": round(1.0 - len(violations) / max(len(records), 1), 4),
-            "severity_breakdown": sev_counts,
-            "rules_loaded": len(self.get_rules()),
-            "last_updated": datetime.datetime.utcnow().isoformat()
-        }
+    total_records = len(records)
+    total_violations = len(violations)
+    compliance_score = 100 * (total_records - total_violations) / max(total_records, 1)
+
+    return {
+        "total_records": total_records,
+        "active_violations": total_violations,
+        "compliance_score": round(compliance_score, 2),
+        "severity_breakdown": sev_counts,
+        "rules_loaded": len(self.get_rules()),
+        "last_updated": datetime.datetime.utcnow().isoformat()
+    }
+    
